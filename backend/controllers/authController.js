@@ -31,37 +31,36 @@ exports.register = async (req, res) => {
   }
 };
 
-
-
-
+// Login User
 exports.login = async (req, res) => {
-    try {
-      const { email, password } = req.body;
-  
-      // Check if email and password are provided
-      if (!email || !password) {
-        return res.status(400).json({ message: "Please provide email and password" });
-      }
-  
-      // Check if user exists
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(400).json({ message: "Invalid credentials - User not found" });
-      }
-  
-      // Validate password
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ message: "Invalid credentials - Incorrect password" });
-      }
-  
-      // Generate JWT
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-  
-      res.json({ token, user });
-    } catch (error) {
-      console.error("Login Error:", error);
-      res.status(500).json({ message: "Server Error", error: error.message });
-    }
-  };
-  
+  try {
+    const { email, password } = req.body;
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+    // Validate password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid credentials" });
+
+    // Generate JWT
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.json({ token, user });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+// Logout User
+exports.logout = async (req, res) => {
+  try {
+    res.json({ message: "User logged out successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+};

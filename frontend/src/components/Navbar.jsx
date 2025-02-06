@@ -8,7 +8,7 @@ import { useLocation } from "react-router-dom";
 const Navbar = ({ isAuthenticated, onLogout, onNavigate }) => {
   const location = useLocation();
 
-  // Check if the user is on the Login or Register page
+ 
   const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
 
   return (

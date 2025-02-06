@@ -1,137 +1,111 @@
-import React from 'react';
-import { Bell, Settings, User, Calendar, Mail, ChevronDown, Activity, Users, DollarSign, Clock } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
-const Dashboard = ({ 
-  user = {
-    name: "John Doe",
-    email: "john@example.com",
-    dob: "1990-01-01"
-  }
-}) => {
+const Dashboard = () => {
+  const [users, setUsers] = useState([]);
+  const [error, setError] = useState("");
+  const [visiblePasswords, setVisiblePasswords] = useState({});
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Unauthorized. Please log in.");
+          return;
+        }
+        const res = await fetch("http://localhost:5000/api/auth/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setUsers(data);
+        const visibilityState = data.reduce((acc, user) => {
+          acc[user._id] = false;
+          return acc;
+        }, {});
+        setVisiblePasswords(visibilityState);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+        setError("Failed to fetch user data");
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  const togglePasswordVisibility = (userId) => {
+    setVisiblePasswords((prev) => ({
+      ...prev,
+      [userId]: !prev[userId],
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
+      <div className="max-w-7xl mx-auto pt-16 px-4 pb-6"> {/* Increased max-width and adjusted padding */}
+        <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center uppercase tracking-wide">
+          Logged-in Users
+        </h2>
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          {error && (
+            <div className="mx-6 mt-4 p-4 bg-red-50 rounded-lg">
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-full hover:bg-gray-100">
-                <Bell className="w-5 h-5 text-gray-600" />
-              </button>
-              <button className="p-2 rounded-full hover:bg-gray-100">
-                <Settings className="w-5 h-5 text-gray-600" />
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center">
-                  <span className="text-white font-medium">
-                    {user.name?.charAt(0)}
-                  </span>
-                </div>
-                <span className="text-gray-700">{user.name}</span>
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+          )}
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Overview */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-teal-100 rounded-lg">
-                <User className="w-6 h-6 text-teal-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Name</p>
-                <p className="font-medium text-gray-900">{user.name}</p>
+          {users.length > 0 ? (
+            <div className="p-8"> {/* Increased padding for better spacing */}
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Birth</th>
+                      <th className="px-8 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {users.map((user) => (
+                      <tr 
+                        key={user._id} 
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-8 py-5 whitespace-nowrap text-sm text-gray-900">{user.name}</td>
+                        <td className="px-8 py-5 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
+                        <td className="px-8 py-5 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(user.dob).toDateString()}
+                        </td>
+                        <td className="px-8 py-5 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            <code className="flex-1 px-3 py-1 text-sm bg-gray-50 rounded-md font-mono text-gray-900">
+                              {visiblePasswords[user._id] ? user.password : "••••••••"}
+                            </code>
+                            <button
+                              onClick={() => togglePasswordVisibility(user._id)}
+                              className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                              aria-label="Toggle password visibility"
+                            >
+                              {visiblePasswords[user._id] ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Mail className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium text-gray-900">{user.email}</p>
-              </div>
+          ) : (
+            <div className="p-6 text-center">
+              <p className="text-gray-500">Loading user data...</p>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <Calendar className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Date of Birth</p>
-                <p className="font-medium text-gray-900">{user.dob}</p>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-gray-500 text-sm">Total Views</h3>
-              <Activity className="w-5 h-5 text-teal-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">2,847</p>
-            <p className="text-sm text-green-500">+12.5% from last month</p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-gray-500 text-sm">Total Users</h3>
-              <Users className="w-5 h-5 text-blue-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">1,438</p>
-            <p className="text-sm text-green-500">+8.2% from last month</p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-gray-500 text-sm">Revenue</h3>
-              <DollarSign className="w-5 h-5 text-green-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">$32,754</p>
-            <p className="text-sm text-green-500">+15.3% from last month</p>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-gray-500 text-sm">Avg. Time</h3>
-              <Clock className="w-5 h-5 text-purple-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900">12m 13s</p>
-            <p className="text-sm text-red-500">-2.1% from last month</p>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {[1, 2, 3, 4, 5].map((item) => (
-              <div key={item} className="p-6 hover:bg-gray-50">
-                <div className="flex items-center space-x-3">
-                  <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                  <p className="text-gray-600">User profile was updated</p>
-                  <span className="text-sm text-gray-400">2 hours ago</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 };

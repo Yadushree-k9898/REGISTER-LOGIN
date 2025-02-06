@@ -64,3 +64,29 @@ exports.logout = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const token = req.header("Authorization");
+    if (!token) {
+      console.error("No token provided");
+      return res.status(401).json({ message: "No token, authorization denied" });
+    }
+
+    // Verify JWT
+    const decoded = jwt.verify(token.split(" ")[1], process.env.JWT_SECRET);
+    if (!decoded) {
+      console.error("Invalid token");
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    // Fetch all users, including passwords (⚠️ Not recommended in production)
+    const users = await User.find();
+
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
